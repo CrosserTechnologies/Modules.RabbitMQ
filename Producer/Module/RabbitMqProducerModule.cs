@@ -22,6 +22,8 @@ public class RabbitMqProducerModule : FlowModule<RabbitMqProducerModuleSettings>
             object any => $"{any}"
         };
 
+        message.GetByTemplate()
+
         if (data is null)
         {
             throw new NullReferenceException("Data to send to RabbitMQ was null");
