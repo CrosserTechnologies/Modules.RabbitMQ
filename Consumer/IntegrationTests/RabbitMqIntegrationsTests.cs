@@ -68,9 +68,9 @@ public class RabbitMqIntegrationTests
             Credential = Guid.NewGuid()
         };
         settings.Credentials.Add(settings.Credential.Value, new CredentialWithUsernamePassword() { Username = "theuser", Password = "thepassword" });
-        settings.QueueSettings.QueueName = "testX";
-        settings.ExchangeSettings.ExchangeName = "testX";
-        settings.ExchangeSettings.ExchangeRoutingKey = "testX";
+        settings.QueueSettings.QueueName = "queueY";
+        settings.ExchangeSettings.ExchangeName = "exchangeY";
+        settings.ExchangeSettings.ExchangeRoutingKey = "routingY";
         settings.ExchangeSettings.ExchangeTypeValue = ExchangeTypeValue.Direct;
 
         var client = new RabbitMqClient(settings);

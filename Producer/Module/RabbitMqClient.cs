@@ -2,7 +2,13 @@ namespace Crosser.EdgeNode.Modules.RabbitMq.Common;
 
 public partial class RabbitMqClient
 {
-    public IResult Publish(ReadOnlyMemory<byte> message)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="message">The message to publish</param>
+    /// <param name="routingKey">The routing key to use, if null the routing key from ExchangeSettings.ExchangeRoutingKey is used</param>
+    /// <returns></returns>
+    public IResult Publish(ReadOnlyMemory<byte> message, string? routingKey = null)
     {
         try
         {
@@ -17,10 +23,10 @@ public partial class RabbitMqClient
 
             if (this.Channel is null)
             {
-                return Result<IModel>.Fault("Channel could not be created");
+                return Result.Fault("Channel could not be created");
             }
 
-            this.Channel.BasicPublish(this.Settings.ExchangeSettings.ExchangeName, this.Settings.ExchangeSettings.ExchangeRoutingKey, false, this.ChannelProperties, message);
+            this.Channel.BasicPublish(this.Settings.ExchangeSettings.ExchangeName, routingKey ?? this.Settings.ExchangeSettings.ExchangeRoutingKey, false, this.ChannelProperties, message);
             return Result.Ok();
         }
         catch (Exception ex)

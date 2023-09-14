@@ -1,4 +1,6 @@
+using Crosser.EdgeNode.Flows.Models.Abstractions.Models;
 using Crosser.EdgeNode.Modules.RabbitMq.Common;
+using Crosser.EdgeNode.Modules.Testing;
 
 namespace Crosser.EdgeNode.Modules.RabbitMq.IntegrationTests;
 
@@ -7,6 +9,21 @@ namespace Crosser.EdgeNode.Modules.RabbitMq.IntegrationTests;
 /// </summary>
 public class ProducerModuleIntegrationTests
 {
+    private RabbitMqProducerModule module;
+
+    public ProducerModuleIntegrationTests()
+    {
+        module = new RabbitMqProducerModule();
+        module.Settings.Hostname = "localhost";
+        module.Settings.VirtualHost = "/";
+        module.Settings.Port = 5672;
+        module.Settings.Credential = Guid.NewGuid();
+        module.Settings.Credentials.Add(module.Settings.Credential.Value, new CredentialWithUsernamePassword() { Username = "theuser", Password = "thepassword" });
+        module.Settings.ExchangeSettings.ExchangeName = "testX";
+        module.Settings.ExchangeSettings.ExchangeRoutingKey = "testX";
+        module.Settings.ExchangeSettings.ExchangeTypeValue = ExchangeTypeValue.Direct;
+    }
+
     [Fact]
     public void CanPublishWithStaticRoutingKey()
     {
@@ -35,14 +52,123 @@ public class ProducerModuleIntegrationTests
     }
 
     [Fact]
-    public void CanPublishWithoutRoutingKey()
+    public async Task CanPublishWithEmptyRoutingKey()
     {
+        module.Settings.ExchangeSettings.ExchangeRoutingKey = "";
 
+        var flow = module.SetupFlow();
+
+        var startResult = await flow.Start();
+        Assert.True(startResult.IsSuccess);
+
+        var msg = new FlowMessage();
+        msg.Set("data", "Hello");
+        await flow.Receive(msg);
+
+        var result = await flow.GetNextResult();
+        Assert.True(result.IsSuccess);
+
+        var stopResult = await flow.Stop();
+        Assert.True(stopResult.IsSuccess);
     }
 
     [Fact]
-    public void CanPublishWithoutRoutingKeyAsTemplate()
+    public async Task CanPublishWithRoutingKey()
     {
+        var flow = module.SetupFlow();
 
+        var startResult = await flow.Start();
+        Assert.True(startResult.IsSuccess);
+
+        var msg = new FlowMessage();
+        msg.Set("data", "Hello");
+        await flow.Receive(msg);
+
+        var result = await flow.GetNextResult();
+        Assert.True(result.IsSuccess);
+
+        var stopResult = await flow.Stop();
+        Assert.True(stopResult.IsSuccess);
+    }
+
+    [Fact]
+    public async Task CanPublishWithoutRoutingKeyAsTemplate()
+    {
+        module.Settings.ExchangeSettings.ExchangeRoutingKey = "{routing.key}";
+        var flow = module.SetupFlow();
+
+        var startResult = await flow.Start();
+        Assert.True(startResult.IsSuccess);
+
+        var msg = new FlowMessage();
+        msg.Set("data", "Hello");
+        msg.Set("routing.key", "textX");
+        await flow.Receive(msg);
+
+        var result = await flow.GetNextResult();
+        Assert.True(result.IsSuccess);
+
+        var stopResult = await flow.Stop();
+        Assert.True(stopResult.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ShouldGetSuccessFalseAndCorrectErrorWhenSourceIsMissingOnFlowMessage()
+    {
+        var flow = module.SetupFlow();
+
+        var startResult = await flow.Start();
+        Assert.True(startResult.IsSuccess);
+
+        var msg = new FlowMessage();
+        await flow.Receive(msg);
+
+        FlowMessage result = (FlowMessage)await flow.GetNextResult();
+        Assert.False(result.IsSuccess);
+        Assert.Equal("RabbitMQ: The source property 'data' was not present on the incoming message", result.ErrorMessage);
+
+        var stopResult = await flow.Stop();
+        Assert.True(stopResult.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ShouldGetSuccessFalseAndCorrectErrorWhenSourceIsNull()
+    {
+        var flow = module.SetupFlow();
+
+        var startResult = await flow.Start();
+        Assert.True(startResult.IsSuccess);
+
+        var msg = new FlowMessage();
+        msg.Set<object>("data", null);
+        await flow.Receive(msg);
+
+        FlowMessage result = (FlowMessage)await flow.GetNextResult();
+        Assert.False(result.IsSuccess);
+        Assert.Equal("RabbitMQ: Data to send to RabbitMQ was null", result.ErrorMessage);
+
+        var stopResult = await flow.Stop();
+        Assert.True(stopResult.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ShouldGetSuccessFalseAndCorrectErrorWhenRoutingKeyIsMissing()
+    {
+        module.Settings.ExchangeSettings.ExchangeRoutingKey = "{routing.key}";
+        var flow = module.SetupFlow(timeout: 10000000);
+
+        var startResult = await flow.Start();
+        Assert.True(startResult.IsSuccess);
+
+        var msg = new FlowMessage();
+        msg.Set("data", "hello");
+        await flow.Receive(msg);
+
+        FlowMessage result = (FlowMessage)await flow.GetNextResult();
+        Assert.False(result.IsSuccess);
+        Assert.Equal($"RabbitMQ: Failed to get routing key '{module.Settings.ExchangeSettings.ExchangeRoutingKey}' from message", result.ErrorMessage);
+
+        var stopResult = await flow.Stop();
+        Assert.True(stopResult.IsSuccess);
     }
 }
