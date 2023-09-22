@@ -21,7 +21,7 @@ public partial class RabbitMqClient : IDisposable
         if (this.Settings.Credential.HasValue)
         {
             var credential = this.Settings.GetCredentialById(this.Settings.Credential.Value);
-            if (credential.Data is not null)
+            if (credential.Data is not null && credential.Data.Length > 0)
             {
                 var userNameAndPassword = credential.ToCredential<CredentialWithUsernamePassword>();
                 this.factory.UserName = userNameAndPassword.Username;

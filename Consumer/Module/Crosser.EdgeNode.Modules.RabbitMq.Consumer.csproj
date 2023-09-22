@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Crosser.EdgeNode.Flows" Version="2.5.0" />
-    <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
+    <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />
     <PackageReference Include="NJsonSchema" Version="10.8.0" />
   </ItemGroup>
 
